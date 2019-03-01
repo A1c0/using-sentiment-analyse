@@ -1,0 +1,17 @@
+{
+  "name": "using-sentiment-analyse",
+  "version": "1.0.0",
+  "main": "lib/sentiment.js",
+  "author": "Alexandre CONTASSOT* <alexandrecontassot@hotmail.fr>",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^7.0.1",
+    "papaparse": "^4.6.3",
+    "ramda": "^0.26.1",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4"
+  },
+  "devDependencies": {
+    "xo": "^0.24.0"
+  }
+}
