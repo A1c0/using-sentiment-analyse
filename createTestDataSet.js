@@ -2,7 +2,7 @@ const R = require('ramda');
 const fs = require('fs-extra');
 const Papa = require('papaparse');
 const Bromise = require("bluebird");
-const {getSentimentsArray} = require('./lib/sentiment');
+const {shuffle, getFirstNthElements} = require('./lib/tab-utils')
 
 const getFileContentAsString = R.pipe(
   fs.readFileSync,
@@ -27,37 +27,28 @@ const parseCsvFile = R.curry((delimiter, column, path) => R.pipe(
   R.map(R.prop(column)),
 )(path));
 
-const getSentiment = array => R.pipe(
-  getSentimentsArray,
-  R.then(R.pipe(
-    R.zip(array),
-    R.map(R.zipObj(['sentence', 'positive'])),
-  ))
-)(array);
-
-const convertToTag = value => value > 0.5 ? 'positive' : 'negative';
-
-const addSentimentTag = obj => R.assoc('sentimentTag', convertToTag(R.prop('positive', obj)), obj);
-
 const isString = obj => R.equals(R.type(obj), 'String');
 
 const writeFile = R.curry((file, data) => fs.writeFileSync(file, data));
 const writeJSON = R.curry((file, data) => fs.writeJsonSync(file, data));
 
-const mapPromise = R.curry((f, x) => Bromise.map(x, f));
-
-const addSentimentToCsvLog = R.pipe(
+const getRandomSentences = R.pipe(
   parseCsvFile(';', 'Log'),
   R.filter(isString),
-  R.splitEvery(5000),
-  mapPromise(getSentiment),
-  R.then(R.pipe(
-    R.flatten,
-    R.map(addSentimentTag),
-    R.sort(R.descend(R.prop('positive'))),
-    Papa.unparse,
-    writeFile('psa-finance-2019-02-26-logs_sentiment.csv')
-  )),
+  shuffle,
+  getFirstNthElements(100),
 );
 
-addSentimentToCsvLog('input/psa-finance-2019-02-26-logs.csv');
+const data1 = getRandomSentences('input/psa-finance-2019-02-26-logs.csv');
+const data2 = getRandomSentences('input/vinci-vega-2019-02-26-logs.csv');
+
+const dataTest = R.concat(data1, data2);
+
+console.log(dataTest);
+
+R.pipe(
+  R.map(R.assoc('sentence',R.__ , {})),
+  Papa.unparse,
+  writeFile('out/dataTest.csv')
+)(dataTest);
+
