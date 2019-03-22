@@ -3,7 +3,7 @@ const fs = require('fs-extra');
 const Bromise = require('bluebird');
 const {getSentimentsArray} = require('./lib/sentiment');
 
-const input = fs.readJsonSync('out/data_test.json');
+const input = fs.readJsonSync('out/data_non_sentiment.json');
 const writeJSON = R.curry((file, data) => fs.writeJsonSync(file, data));
 
 const getSentimentAverage = R.pipe(
@@ -23,6 +23,7 @@ const process = R.pipe(
 	mapPromise(addSentimentAverage),
 	R.then(R.pipe(
 		R.sort(R.ascend(R.prop('sentiment'))),
+		R.tap(console.log),
 		writeJSON('out/blob.json')
 	))
 );
