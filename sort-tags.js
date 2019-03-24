@@ -1,5 +1,4 @@
 const R = require('ramda');
-const fs = require('fs-extra');
 const Bromise = require('bluebird');
 const {getSentimentsArray} = require('./lib/sentiment');
 const {readJson, writeJsonToCsv, writeJson} = require('./lib/file');
@@ -15,17 +14,15 @@ const addSentimentAverage = obj => R.pipe(
 	R.then(R.assoc('sentiment', R.__, obj))
 )(obj);
 
-const mapPromise = R.curry((f, x) => Bromise.map(x, f));
+const process = async (path) => {
+	let array = readJson(path);
+	for (let i = 0; i < array.length; i++) {
+		console.log(`${i}/${array.length}`);
+		array[i] = await addSentimentAverage(array[i]);
+	}
+	array = R.sort(R.ascend(R.prop('sentiment')), array);
+	writeJson('out/res-with-sentiment.json', array);
+  writeJsonToCsv('out/res-with-sentiment.csv', array);
+};
 
-const process = R.pipe(
-	readJson,
-	mapPromise(addSentimentAverage),
-	R.then(R.pipe(
-		R.sort(R.ascend(R.prop('sentiment'))),
-		R.tap(console.log),
-		R.tap(writeJsonToCsv('out/test-csv.csv')),
-		writeJson('out/res-with-sentences.json')
-	))
-);
-
-process('out/data_non_sentiment.json');
+process('input/res-mot-sens-proche.json');
