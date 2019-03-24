@@ -6,7 +6,7 @@ const isNotEmpty = str => R.not(R.equals('')(str));
 const haveMoreThan3Sentences = obj => R.pipe(
   R.prop('sentences'),
   R.length,
-  R.gte(3),
+  R.gt(3),
   R.not,
 )(obj);
 
