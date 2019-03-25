@@ -1,28 +1,61 @@
 const R = require('ramda');
 const Bromise = require('bluebird');
+
+const {readJson, writeJson, writeJsonToCsv} = require('./lib/file');
 const {getSentimentsArray} = require('./lib/sentiment');
-const {readJson, writeJsonToCsv, writeJson} = require('./lib/file');
 
-const getSentimentAverage = R.pipe(
-	R.prop('sentences'),
-	getSentimentsArray,
-	R.then(R.mean)
-);
+const input = 'input/res-mot-sens-proche.json';
 
-const addSentimentAverage = obj => R.pipe(
-	getSentimentAverage,
-	R.then(R.assoc('sentiment', R.__, obj))
-)(obj);
+const mapPromise = R.curry((f, x) => Bromise.map(x, f));
 
-const process = async (path) => {
-	let array = readJson(path);
-	for (let i = 0; i < array.length; i++) {
-		console.log(`${i}/${array.length}`);
-		array[i] = await addSentimentAverage(array[i]);
-	}
-	array = R.sort(R.ascend(R.prop('sentiment')), array);
-	writeJson('out/res-with-sentiment.json', array);
-  writeJsonToCsv('out/res-with-sentiment.csv', array);
+const sortTag = async (input, outputCSV, outputJSON) => {
+	const addSentiments = tab => R.pipe(
+		getSentimentsArray,
+		R.then(R.pipe(
+			R.zip(tab),
+			R.map(R.zipObj(['sentence', 'sentiment']))
+		))
+	)(tab);
+
+	const mapSentencesSentiment = await R.pipe(
+		readJson,
+		R.map(R.prop('sentences')),
+		R.flatten,
+		R.uniq,
+		R.splitEvery(5000),
+		mapPromise(addSentiments),
+		R.then(R.flatten)
+	)(input);
+
+	const isSentence = R.curry((sentenceSearched, obj) => R.pipe(
+		R.prop('sentence'),
+		R.equals(sentenceSearched)
+	)(obj));
+
+	const getSentiment = sentence => R.pipe(
+		R.filter(isSentence(sentence)),
+		R.head,
+		R.prop('sentiment')
+	)(mapSentencesSentiment);
+
+	const getSentimentAverage = R.pipe(
+		R.prop('sentences'),
+		R.map(getSentiment),
+		R.mean
+	);
+
+	const addSentimentAverage = obj => R.pipe(
+		getSentimentAverage,
+		R.assoc('sentiment', R.__, obj),
+	)(obj);
+
+	R.pipe(
+		readJson,
+		R.map(addSentimentAverage),
+		R.sort(R.ascend(R.prop('sentiment'))),
+		R.tap(writeJson(outputJSON)),
+		R.tap(writeJsonToCsv(outputCSV))
+	)(input);
 };
 
-process('input/res-mot-sens-proche.json');
+sortTag(input, 'out/last/test.csv', 'out/last/test.json');
