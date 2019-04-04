@@ -4,7 +4,7 @@ const Bromise = require('bluebird');
 const {readJson, writeJson, writeJsonToCsv} = require('./lib/file');
 const {getSentimentsArray} = require('./lib/sentiment');
 
-const input = 'input/res-mot-sens-proche.json';
+const input = 'input/demo.json';
 
 const mapPromise = R.curry((f, x) => Bromise.map(x, f));
 
@@ -58,4 +58,4 @@ const sortTag = async (input, outputCSV, outputJSON) => {
 	)(input);
 };
 
-sortTag(input, 'out/last/test.csv', 'out/last/test.json');
+sortTag(input, 'out/last/testi.csv', 'out/last/testi.json');
